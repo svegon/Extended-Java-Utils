@@ -1,0 +1,15 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="extended java utils:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/extended_java_utils_jar</output-path>
+    <root id="archive" name="extended java utils.jar">
+      <element id="module-output" name="extended java utils" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../dependencies/base-1.0.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.google.guava/failureaccess/1.0.1/1dcf1de382a0bf95a3d8b0849546c88bac1292c9/failureaccess-1.0.1.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/net/jcip/jcip-annotations/1.0/jcip-annotations-1.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../dependencies/guava-30.1.1-jre.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../dependencies/fastutil-8.5.6.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/jetbrains/annotations/20.1.0/annotations-20.1.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../dependencies/gson-2.8.7.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

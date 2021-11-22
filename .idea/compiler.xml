@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <addNotNullAssertions enabled="false" />
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="extended java utils" options="--add-exports java.base/jdk.internal.reflect=ALL-UNNAMED --add-exports java.base/jdk.internal.vm.annotation=ALL-UNNAMED" />
+    </option>
+  </component>
+</project>
