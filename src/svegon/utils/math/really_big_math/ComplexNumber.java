@@ -1,7 +1,7 @@
 package svegon.utils.math.really_big_math;
 
 import com.google.common.base.Preconditions;
-import it.unimi.dsi.fastutil.Pair;
+import it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair;
 import net.jcip.annotations.Immutable;
 import org.jetbrains.annotations.NotNull;
 import svegon.utils.annotations.ToDo;
@@ -69,7 +69,8 @@ public final class ComplexNumber extends InfiniNumber {
     }
 
     @Override
-    public @NotNull Pair<InfiniNumber, InfiniNumber> divMod(@NotNull Number other) {
+    public @NotNull ObjectObjectImmutablePair<@NotNull InfiniNumber, @NotNull InfiniNumber>
+    divMod(@NotNull Number other) {
         return null;
     }
 
@@ -105,7 +106,7 @@ public final class ComplexNumber extends InfiniNumber {
 
     @Override
     public @NotNull InfiniNumber sign() {
-        return 0;
+        return null;
     }
 
     @Override

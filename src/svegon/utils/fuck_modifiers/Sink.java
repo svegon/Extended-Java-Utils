@@ -77,7 +77,7 @@ import java.util.function.LongConsumer;
  * <p>A {@code Sink} instance is used to represent each stage of this pipeline,
  * whether the stage accepts objects, ints, longs, or doubles.  Sink has entry
  * points for {@code accept(Object)}, {@code accept(int)}, etc, so that we do
- * not need a specialized interface for each primitive specialization.  (It
+ * not need a specialized interface for each fast specialization.  (It
  * might be called a "kitchen sink" for this omnivorous tendency.)  The entry
  * point to the pipeline is the {@code Sink} for the filtering stage, which
  * sends some elements "downstream" -- into the {@code Sink} for the mapping
@@ -89,9 +89,9 @@ import java.util.function.LongConsumer;
  * the data type it accepts.
  *
  * <p>The specialized subtypes such as {@link OfInt} override
- * {@code accept(Object)} to call the appropriate primitive specialization of
- * {@code accept}, implement the appropriate primitive specialization of
- * {@code Consumer}, and re-abstract the appropriate primitive specialization of
+ * {@code accept(Object)} to call the appropriate fast specialization of
+ * {@code accept}, implement the appropriate fast specialization of
+ * {@code Consumer}, and re-abstract the appropriate fast specialization of
  * {@code accept}.
  *
  * <p>The chaining subtypes such as {@link ChainedInt} not only implement

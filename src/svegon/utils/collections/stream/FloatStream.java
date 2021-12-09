@@ -1,6 +1,8 @@
 package svegon.utils.collections.stream;
 
 import svegon.utils.collections.ArrayUtil;
+import svegon.utils.collections.collecting.FloatCollector;
+import svegon.utils.fast.util.floats.FloatSummaryStatistics;
 import svegon.utils.collections.spliterator.SpliteratorUtil;
 import svegon.utils.fuck_modifiers.SpinedBuffer;
 import svegon.utils.fuck_modifiers.StreamSpliterators;
@@ -609,6 +611,54 @@ public interface FloatStream extends BaseStream<Float, FloatStream> {
      * @see Stream#collect(Supplier, BiConsumer, BiConsumer)
      */
     <R> R collect(Supplier<R> supplier, ObjectFloatConsumer<R> accumulator, BiConsumer<R, R> combiner);
+
+    /**
+     * Performs a <a href="package-summary.html#MutableReduction">mutable
+     * reduction</a> operation on the elements of this stream using a
+     * {@code Collector}.  A {@code Collector}
+     * encapsulates the functions used as arguments to
+     * {@link #collect(Supplier, ObjectFloatConsumer, BiConsumer)}, allowing for reuse of
+     * collection strategies and composition of collect operations such as
+     * multiple-level grouping or partitioning.
+     *
+     * <p>If the stream is parallel, and the {@code Collector}
+     * is {@link Collector.Characteristics#CONCURRENT concurrent}, and
+     * either the stream is unordered or the collector is
+     * {@link Collector.Characteristics#UNORDERED unordered},
+     * then a concurrent reduction will be performed (see {@link Collector} for
+     * details on concurrent reduction.)
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">terminal
+     * operation</a>.
+     *
+     * <p>When executed in parallel, multiple intermediate results may be
+     * instantiated, populated, and merged so as to maintain isolation of
+     * mutable data structures.  Therefore, even when executed in parallel
+     * with non-thread-safe data structures (such as {@code ArrayList}), no
+     * additional synchronization is needed for a parallel reduction.
+     *
+     * @apiNote
+     * The following will accumulate strings into a List:
+     * <pre>{@code
+     *     FloatList asList = floatStream.collect(CollectingUtil.toFloatList());
+     * }</pre>
+     *
+     * <p>The following will classify {@code Person} objects by state and city,
+     * cascading two {@code Collector}s together:
+     * <pre>{@code
+     *     Map<String, Map<String, List<Person>>> peopleByStateAndCity
+     *         = personStream.collect(Collectors.groupingBy(Person::getState,
+     *                                                      Collectors.groupingBy(Person::getCity)));
+     * }</pre>
+     *
+     * @param <R> the type of the result
+     * @param <A> the intermediate accumulation type of the {@code Collector}
+     * @param collector the {@code Collector} describing the reduction
+     * @return the result of the reduction
+     * @see #collect(Supplier, ObjectFloatConsumer, BiConsumer)
+     * @see Collectors
+     */
+    <R, A> R collect(FloatCollector<A, R> collector);
 
     /**
      * Returns the sum of elements in this stream.

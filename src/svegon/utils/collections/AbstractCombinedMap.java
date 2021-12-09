@@ -9,6 +9,8 @@ package svegon.utils.collections;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
+import it.unimi.dsi.fastutil.objects.ObjectIterators;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -16,28 +18,23 @@ import java.util.*;
 
 public abstract class AbstractCombinedMap<K, V> extends AbstractMultimap<K, V> implements CombinedMap<K, V> {
     @Override
-    public Iterator<Map.Entry<K, V>> iterator() {
-        return getCache().stream().flatMap((m) -> m.entrySet().stream()).iterator();
+    public ObjectIterator<Map.Entry<K, V>> iterator() {
+        return ObjectIterators.asObjectIterator(getCache().stream().flatMap((m) -> m.entrySet().stream()).iterator());
     }
 
     @Override
     public int size() {
-        return getCache().stream().mapToInt(Map::size).sum();
+        return getCache().parallelStream().mapToInt(Map::size).sum();
     }
 
     @Override
     public boolean isEmpty() {
-        return getCache().stream().allMatch(Map::isEmpty);
-    }
-
-    @Override
-    public boolean containsKey(final @Nullable Object o) {
-        return getCache().stream().anyMatch((m) -> m.containsKey(o));
+        return getCache().parallelStream().allMatch(Map::isEmpty);
     }
 
     @Override
     public boolean containsValue(final @Nullable Object o) {
-        return getCache().stream().anyMatch((m) -> m.containsValue(o));
+        return getCache().parallelStream().anyMatch((m) -> m.containsValue(o));
     }
 
     @Override
@@ -47,13 +44,17 @@ public abstract class AbstractCombinedMap<K, V> extends AbstractMultimap<K, V> i
     }
 
     @Override
-    public boolean put(@Nullable K k, @Nullable V v) {
-        return putEntry(k, v) != v;
+    public boolean add(Map.Entry<K, V> entry) {
+        if (entry == null) {
+            return false;
+        }
+
+        return putEntry(entry.getKey(), entry.getValue()) != entry.getValue();
     }
 
     @Override
-    public boolean remove(final @Nullable Object o, final @Nullable Object o1) {
-        return getCache().stream().anyMatch((m) -> m.remove(o, o1));
+    public boolean remove(final @Nullable Object key, final @Nullable Object value) {
+        return getCache().stream().anyMatch((m) -> m.remove(key, value));
     }
 
     @Override
@@ -75,17 +76,6 @@ public abstract class AbstractCombinedMap<K, V> extends AbstractMultimap<K, V> i
             }
 
             modified |= put(k, value);
-        }
-
-        return modified;
-    }
-
-    @Override
-    public boolean putAll(@NotNull Multimap<? extends K, ? extends V> multimap) {
-        boolean modified = false;
-
-        for (Map.Entry<? extends K, ? extends Collection<? extends V>> entry : multimap.asMap().entrySet()) {
-            modified |= putAll(entry.getKey(), entry.getValue());
         }
 
         return modified;
@@ -133,15 +123,37 @@ public abstract class AbstractCombinedMap<K, V> extends AbstractMultimap<K, V> i
 
     @Override
     public Collection<V> get(final @Nullable K k) {
-        return asMap().get(k);
+        return new AbstractCollection<>() {
+            @Override
+            public int size() {
+                return (int) getCache().stream().filter((m) -> m.containsKey(k)).count();
+            }
+
+            @Override
+            public boolean isEmpty() {
+                return getCache().stream().noneMatch((m) -> m.containsKey(k));
+            }
+
+            @Override
+            public boolean contains(final Object o) {
+                return o == null ? getCache().stream().anyMatch(m -> m.get(k) == null)
+                        : getCache().stream().anyMatch(m -> o.equals(m.get(k)));
+            }
+
+            @NotNull
+            @Override
+            public Iterator<V> iterator() {
+                return getCache().stream().filter((m) -> m.containsKey(k)).map((m) -> m.get(k)).iterator();
+            }
+        };
     }
 
     @Override
-    public Map<K, Collection<V>> initMapView() {
-        return new AbstractMap<>() {
+    protected Set<K> initKeySet() {
+        return new AbstractSet<>() {
             @Override
             public int size() {
-                return (int) getCache().stream().flatMap(m -> m.keySet().stream()).distinct().count();
+                return (int) getCache().parallelStream().flatMap(m -> m.keySet().stream()).distinct().count();
             }
 
             @Override
@@ -150,158 +162,25 @@ public abstract class AbstractCombinedMap<K, V> extends AbstractMultimap<K, V> i
             }
 
             @Override
-            public boolean containsKey(Object key) {
-                return AbstractCombinedMap.this.containsKey(key);
+            public boolean contains(Object o) {
+                return getCache().parallelStream().anyMatch(m -> m.containsKey(o));
+            }
+
+            @NotNull
+            @Override
+            public Iterator<K> iterator() {
+                return getCache().parallelStream().flatMap(m -> m.keySet().stream()).distinct().iterator();
             }
 
             @Override
-            public Collection<V> get(final Object key) {
-                return new AbstractCollection<>() {
-                    @Override
-                    public int size() {
-                        return (int) getCache().stream().filter((m) -> m.containsKey(key)).count();
-                    }
-
-                    @Override
-                    public boolean isEmpty() {
-                        return getCache().stream().noneMatch((m) -> m.containsKey(key));
-                    }
-
-                    @Override
-                    public boolean contains(final Object o) {
-                        return o == null ? getCache().stream().anyMatch(m -> m.get(key) == null)
-                                : getCache().stream().anyMatch(m -> o.equals(m.get(key)));
-                    }
-
-                    @NotNull
-                    @Override
-                    public Iterator<V> iterator() {
-                        return getCache().stream().filter((m) -> m.containsKey(key)).map((m) -> m.get(key)).iterator();
-                    }
-                };
-            }
-
-            @Nullable
-            @Override
-            public Collection<V> put(K key, Collection<V> value) {
-                return AbstractCombinedMap.this.replaceValues(key, value);
-            }
-
-            @Override
-            public Collection<V> remove(Object key) {
-                return AbstractCombinedMap.this.removeAll(key);
+            public boolean remove(Object o) {
+                Collection<V> ret = AbstractCombinedMap.this.removeAll(o);
+                return ret != null && !ret.isEmpty();
             }
 
             @Override
             public void clear() {
                 AbstractCombinedMap.this.clear();
-            }
-
-            @NotNull
-            @Override
-            public Set<Entry<K, Collection<V>>> entrySet() {
-                return new AbstractSet<>() {
-                    @Override
-                    public int size() {
-                        return (int) getCache().stream().flatMap(m -> m.keySet().stream()).distinct().count();
-                    }
-
-                    @Override
-                    public boolean isEmpty() {
-                        return AbstractCombinedMap.this.isEmpty();
-                    }
-
-                    @Override
-                    public boolean contains(Object o) {
-                        return o instanceof Entry<?, ?> that && Objects.equals(that.getValue(),
-                                AbstractCombinedMap.this.asMap().get(that.getKey()));
-                    }
-
-                    @NotNull
-                    @Override
-                    public Iterator<Entry<K, Collection<V>>> iterator() {
-                        return new Iterator<>() {
-                            private final Iterator<K> keyIt =
-                                    getCache().stream().flatMap(m -> m.keySet().stream()).distinct().iterator();
-
-                            @Override
-                            public boolean hasNext() {
-                                return keyIt.hasNext();
-                            }
-
-                            @Override
-                            public Entry<K, Collection<V>> next() {
-                                return new Entry<>() {
-                                    private final K key = keyIt.next();
-
-                                    @Override
-                                    public K getKey() {
-                                        return key;
-                                    }
-
-                                    @Override
-                                    public Collection<V> getValue() {
-                                        return AbstractCombinedMap.this.get(getKey());
-                                    }
-
-                                    @Override
-                                    public Collection<V> setValue(@NotNull Collection<V> value) {
-                                        return AbstractCombinedMap.this.replaceValues(getKey(), value);
-                                    }
-
-                                    @Override
-                                    public boolean equals(Object o) {
-                                        if (this == o) {
-                                            return true;
-                                        }
-
-                                        if (!(o instanceof Entry<?, ?> that)) {
-                                            return false;
-                                        }
-
-                                        return Objects.equals(getKey(), that.getKey())
-                                                && Objects.equals(getValue(), that.getValue());
-                                    }
-
-                                    @Override
-                                    public int hashCode() {
-                                        return 31 * Objects.hashCode(getKey()) + Objects.hashCode(getValue());
-                                    }
-
-                                    @Override
-                                    public String toString() {
-                                        return getKey() + "=" + getValue();
-                                    }
-                                };
-                            }
-                        };
-                    }
-
-                    @Override
-                    public boolean add(@NotNull Entry<K, Collection<V>> kCollectionEntry) {
-                        return AbstractCombinedMap.this.putAll(kCollectionEntry.getKey(),
-                                kCollectionEntry.getValue());
-                    }
-
-                    @Override
-                    public boolean remove(Object o) {
-                        if (o instanceof Entry<?, ?> that) {
-                            Collection<V> value = AbstractCombinedMap.this.asMap().get(that.getKey());
-
-                            if (Objects.equals(value, that.getValue())) {
-                                AbstractCombinedMap.this.removeAll(that.getKey());
-                                return true;
-                            }
-                        }
-
-                        return false;
-                    }
-
-                    @Override
-                    public void clear() {
-                        AbstractCombinedMap.this.clear();
-                    }
-                };
             }
         };
     }

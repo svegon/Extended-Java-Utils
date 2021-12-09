@@ -1,7 +1,6 @@
 package svegon.utils.math.really_big_math;
 
 import org.jetbrains.annotations.Contract;
-import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair;
 import net.jcip.annotations.Immutable;
 import org.jetbrains.annotations.NotNull;
@@ -70,7 +69,8 @@ public final class InfiniNumberNaN extends Infinity {
 
     @Contract("_ -> new")
     @Override
-    public @NotNull Pair<InfiniNumber, InfiniNumber> divMod(@NotNull Number other) {
+    public @NotNull ObjectObjectImmutablePair<@NotNull InfiniNumber, @NotNull InfiniNumber>
+    divMod(@NotNull Number other) {
         return new ObjectObjectImmutablePair<>(this, mod(other));
     }
 

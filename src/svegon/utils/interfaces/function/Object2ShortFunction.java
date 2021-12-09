@@ -6,6 +6,7 @@ import java.util.function.Function;
 public interface Object2ShortFunction<T> extends Function<T, Short> {
     short applyToShort(T o);
 
+    @Deprecated
     @Override
     default Short apply(T t) {
         return applyToShort(t);

@@ -1,6 +1,5 @@
 package svegon.utils.math.really_big_math;
 
-import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair;
 import net.jcip.annotations.Immutable;
 import org.jetbrains.annotations.NotNull;
@@ -100,7 +99,8 @@ public abstract class Infinity extends InfiniNumber implements IdentityComparabl
     }
 
     @Override
-    public @NotNull Pair<InfiniNumber, InfiniNumber> divMod(@NotNull Number other) {
+    public @NotNull ObjectObjectImmutablePair<@NotNull InfiniNumber, @NotNull InfiniNumber>
+    divMod(@NotNull Number other) {
         return new ObjectObjectImmutablePair<>(floorDiv(other), mod(other));
     }
 

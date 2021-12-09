@@ -1,5 +1,10 @@
 package svegon.utils.collections.stream;
 
+import svegon.utils.fast.util.booleans.BooleanPipeline;
+import svegon.utils.fast.util.bytes.BytePipeline;
+import svegon.utils.fast.util.chars.CharPipeline;
+import svegon.utils.fast.util.floats.FloatPipeline;
+import svegon.utils.fast.util.shorts.ShortPipeline;
 import svegon.utils.fuck_modifiers.*;
 import svegon.utils.interfaces.function.Object2ByteFunction;
 import svegon.utils.interfaces.function.Object2CharFunction;

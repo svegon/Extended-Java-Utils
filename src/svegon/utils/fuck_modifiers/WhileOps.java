@@ -38,6 +38,11 @@ import it.unimi.dsi.fastutil.shorts.ShortComparator;
 import it.unimi.dsi.fastutil.shorts.ShortConsumer;
 import it.unimi.dsi.fastutil.shorts.ShortPredicate;
 import it.unimi.dsi.fastutil.shorts.ShortSpliterator;
+import svegon.utils.fast.util.booleans.BooleanPipeline;
+import svegon.utils.fast.util.bytes.BytePipeline;
+import svegon.utils.fast.util.chars.CharPipeline;
+import svegon.utils.fast.util.floats.FloatPipeline;
+import svegon.utils.fast.util.shorts.ShortPipeline;
 import svegon.utils.collections.stream.*;
 
 import java.util.Comparator;
@@ -1286,7 +1291,7 @@ public final class WhileOps {
      * A spliterator supporting takeWhile and dropWhile operations over an
      * underlying spliterator whose covered elements have no encounter order.
      * <p>
-     * Concrete subclasses of this spliterator support reference and primitive
+     * Concrete subclasses of this spliterator support reference and fast
      * types for takeWhile and dropWhile.
      * <p>
      * For the takeWhile operation if during traversal taking completes then

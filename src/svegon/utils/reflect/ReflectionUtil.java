@@ -1,5 +1,6 @@
 package svegon.utils.reflect;
 
+import org.jetbrains.annotations.Nullable;
 import svegon.utils.collections.ArrayUtil;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -470,17 +471,24 @@ public final class ReflectionUtil {
     }
 
     /**
-     * Creates a new instance of the specified class using a constructor using
-     * the specified argument classed passing the specified arguments.
-     * @param clazz class to be instantiated
-     * @param args arguments to be passed to the constructor
-     * @param <T> type of the resulting instance
-     * @return a new instance of {@param clazz}
-     * @throws IllegalArgumentException if the clazz couldn't be instantiated either due to mismatch of arguments
-     * or due to being impossible to instantiate
+     * Returns a list of all non-static fields declared on the given class and all of
+     * its superclasses rdered from the top most class (Object) to the current class.
+     *
+     * @param clazz the class object
+     * @return a list of non-static fields declared on the given class and all
+     * of its superclasses
      */
-    public static <T> T instantiate(Class<T> clazz, Object... args) {
-        return instantiate(clazz, Arrays.stream(args).map(Object::getClass).toArray(Class[]::new), args);
+    public static List<Field> getAllFields(@Nullable Class<?> clazz) {
+        List<Field> list = Lists.newArrayList();
+
+        while (clazz != null) {
+            list.addAll(0, Arrays.asList(clazz.getDeclaredFields()));
+            clazz = clazz.getSuperclass();
+        }
+
+        list.removeIf((field) -> Modifier.isStatic(field.getModifiers()));
+
+        return list;
     }
 
     /**
@@ -489,7 +497,7 @@ public final class ReflectionUtil {
      * @param enumClass a class for which Class.isEnum() returns true
      * @param constantName a name of the constant, should be different from all other names of constant on the class
      * @param argClasses classes of arguments, this may differ classes of each argument
-     *                  if superclasses or primitive classes are sued
+     *                  if superclasses or fast classes are sued
      * @param args arguments used by the class'es constructor
      * @param <E> type of the instance to be instantiated
      * @return a new instance instantiated with the given arguments
@@ -555,7 +563,7 @@ public final class ReflectionUtil {
             ACQUIRE_CONSTRUCTOR_ACCESSOR_METHOD
                     = makeAccessible(Constructor.class.getDeclaredMethod("acquireConstructorAccessor"));
         } catch (NoSuchFieldException | NoSuchMethodException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 }

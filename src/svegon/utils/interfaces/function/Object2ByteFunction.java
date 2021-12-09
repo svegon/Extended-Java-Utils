@@ -6,6 +6,7 @@ import java.util.function.Function;
 public interface Object2ByteFunction<T> extends Function<T, Byte> {
     byte applyToByte(T o);
 
+    @Deprecated
     @Override
     default Byte apply(T t) {
         return applyToByte(t);

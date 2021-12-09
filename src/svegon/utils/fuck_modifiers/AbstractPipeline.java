@@ -32,7 +32,7 @@ import java.util.stream.BaseStream;
 
 /**
  * Abstract base class for "pipeline" classes, which are the core
- * implementations of the Stream interface and its primitive specializations.
+ * implementations of the Stream interface and its fast specializations.
  * Manages construction and evaluation of stream pipelines.
  *
  * <p>An {@code AbstractPipeline} represents an initial portion of a stream
@@ -487,8 +487,7 @@ public abstract class AbstractPipeline<E_IN, E_OUT, S extends BaseStream<E_OUT, 
             wrappedSink.begin(spliterator.getExactSizeIfKnown());
             spliterator.forEachRemaining(wrappedSink);
             wrappedSink.end();
-        }
-        else {
+        } else {
             copyIntoWithCancel(wrappedSink, spliterator);
         }
     }
@@ -625,7 +624,7 @@ public abstract class AbstractPipeline<E_IN, E_OUT, S extends BaseStream<E_OUT, 
      * capacity.
      *
      * @param generator the array generator to be used to create instances of a
-     * T[] array. For implementations supporting primitive nodes, this parameter
+     * T[] array. For implementations supporting fast nodes, this parameter
      * may be ignored.
      * @return a node builder
      */

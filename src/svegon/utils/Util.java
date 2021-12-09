@@ -1,6 +1,7 @@
 package svegon.utils;
 
 import svegon.utils.collections.ArrayUtil;
+import svegon.utils.hash.HashUtil;
 import svegon.utils.interfaces.DeepClonable;
 import svegon.utils.interfaces.IdentityComparable;
 import svegon.utils.reflect.CommonReflections;
@@ -89,11 +90,12 @@ public final class Util {
     @SuppressWarnings("unchecked")
     public static <E> E deepCopy(@Nullable E original) throws CloneNotSupportedException {
         // first let's filter some built-in deeply immutable object
-        if (original == null || original instanceof Enum) {
+        if (original == null) {
             return original;
         }
 
         Class<?> clazz = original.getClass();
+
         if (DEEP_COPY_METHOD_CACHE.containsKey(clazz)) {
             return DEEP_COPY_METHOD_CACHE.get(clazz).copy(original);
         }
@@ -101,6 +103,11 @@ public final class Util {
         if (original instanceof DeepClonable) {
             DEEP_COPY_METHOD_CACHE.put(clazz, DEEP_CLONE);
             return DEEP_CLONE.copy(original);
+        }
+
+        if (original instanceof Enum<?>) {
+            DEEP_COPY_METHOD_CACHE.put(clazz, IDENTITY_COPY);
+            return original;
         }
 
         if (original instanceof IdentityComparable) {
@@ -252,6 +259,7 @@ public final class Util {
         DEEP_COPY_METHOD_CACHE.put(long[].class, PURE_CLONE);
         DEEP_COPY_METHOD_CACHE.put(float[].class, PURE_CLONE);
         DEEP_COPY_METHOD_CACHE.put(double[].class, PURE_CLONE);
+        DEEP_COPY_METHOD_CACHE.put(String.class, IDENTITY_COPY);
         ARRAY_DEEP_COPY_CACHE.put(IDENTITY_COPY, new ArrayDeepCopy(IDENTITY_COPY));
     }
 }

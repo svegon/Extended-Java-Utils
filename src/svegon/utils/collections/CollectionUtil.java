@@ -1,6 +1,10 @@
 package svegon.utils.collections;
 
 import com.google.common.collect.Iterables;
+import it.unimi.dsi.fastutil.booleans.AbstractBooleanCollection;
+import it.unimi.dsi.fastutil.booleans.BooleanCollection;
+import it.unimi.dsi.fastutil.booleans.BooleanIterator;
+import it.unimi.dsi.fastutil.booleans.BooleanIterators;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.AbstractCollection;

@@ -1,10 +1,11 @@
 package svegon.utils.collections;
 
-import svegon.utils.collections.primitive.booleans.ImprovedBooleanCollection;
-import svegon.utils.collections.primitive.bytes.ImprovedByteCollection;
-import svegon.utils.collections.primitive.chars.ImprovedCharCollection;
-import svegon.utils.collections.primitive.floats.ImprovedFloatCollection;
-import svegon.utils.collections.primitive.shorts.ImprovedShortCollection;
+import org.jetbrains.annotations.Nullable;
+import svegon.utils.fast.util.booleans.ImprovedBooleanCollection;
+import svegon.utils.fast.util.bytes.ImprovedByteCollection;
+import svegon.utils.fast.util.chars.ImprovedCharCollection;
+import svegon.utils.fast.util.floats.ImprovedFloatCollection;
+import svegon.utils.fast.util.shorts.ImprovedShortCollection;
 import svegon.utils.collections.stream.*;
 import svegon.utils.multithreading.ThreadUtil;
 import com.google.common.base.Preconditions;
@@ -21,6 +22,7 @@ import it.unimi.dsi.fastutil.shorts.*;
 import net.jcip.annotations.NotThreadSafe;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.RandomAccess;
@@ -39,6 +41,33 @@ public final class ArrayUtil {
     }
 
     private static final int PARALLEL_REVERSE_NO_FORK = 8192;
+
+    /**
+     * Creates a new array with the same component type and length as {@param array}.
+     * @param componentType the component type as class of the resulting array
+     * @param length length of the returning array
+     * @param <T> component of {@param array}
+     * @return a new array instance such that
+     * {@return}.getClass().getComponentType() == {@param componentType}
+     * && {@return}.length == {@param length}
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T[] newArray(final @NotNull Class<T> componentType, int length) {
+        return (T[]) Array.newInstance(componentType, length);
+    }
+
+    /**
+     * Creates a new array with the same component type and length as {@param array}.
+     * @param array the original array
+     * @param length length of the returning array
+     * @param <T> component of {@param array}
+     * @return a new array instance such that
+     * {@return}.getClass().getComponentType() == {@param array}.getClass().getComponentType()
+     * && {@return}.length == {@param length}
+     */
+    public static <T> T[] newArray(final T @NotNull [] array, int length) {
+        return com.google.common.collect.ObjectArrays.newArray(array, length);
+    }
 
     /**
      * Creates a new array with the same component type and length as {@param array}.
@@ -64,7 +93,7 @@ public final class ArrayUtil {
      * @throws NullPointerException if array == null
      */
     public static <T> T[] copyAtEnd(T @NotNull [] array, int newLength) {
-        T[] newArray = com.google.common.collect.ObjectArrays.newArray(array, newLength);
+        T[] newArray = newArray(array, newLength);
 
         if (newLength < array.length) {
             System.arraycopy(array, array.length - newLength, newArray, 0, newLength);
@@ -251,43 +280,6 @@ public final class ArrayUtil {
         return newArray;
     }
 
-    public static <E, F extends E> F[] copyRange(E[] src, int srcOffset, F[] dest, int destOffset, int length) {
-        System.arraycopy(src, srcOffset, dest, destOffset, length);
-        return dest;
-    }
-
-    public static <E, F extends E> F[] copyRange(E[] src, int fromIndex, int toIndex, F[] dest, int destOffset) {
-        return copyRange(src, fromIndex, dest, destOffset, toIndex - fromIndex);
-    }
-
-    public static <E, F extends E> F[] copyRangeTo(E[] src, int srcOffset, F[] dest, int destOffset) {
-        return copyRange(src, srcOffset, dest, destOffset, Math.min(src.length - srcOffset, dest.length - destOffset));
-    }
-
-    public static <E, F extends E> F[] copyRange(E[] src, int srcOffset, F[] dest, int length) {
-        return copyRange(src, srcOffset, dest, 0, length);
-    }
-
-    public static <E, F extends E> F[] copyRange(E[] src, F[] dest, int destOffset, int length) {
-        return copyRange(src, 0, dest, destOffset, length);
-    }
-
-    public static <E, F extends E> F[] copyRange(E[] src, int srcOffset, F[] dest) {
-        return copyRange(src, srcOffset, dest, src.length - srcOffset);
-    }
-
-    public static <E, F extends E> F[] copyRange(E[] src, F[] dest, int length) {
-        return copyRange(src, 0, dest, length);
-    }
-
-    public static <E, F extends E> F[] copyElements(E[] src, F[] dest, int destOffset) {
-        return copyRange(src, dest, destOffset, src.length);
-    }
-
-    public static <E, F extends E> F[] copyElements(E[] src, F[] dest) {
-        return copyElements(src, dest, 0);
-    }
-
     /**
      * @param first first array to be merged
      * @param second second part of the merged array
@@ -314,13 +306,12 @@ public final class ArrayUtil {
      */
     @SuppressWarnings("unchecked")
     public static <E> E[] merge(E @NotNull [] @NotNull ... arrays) {
-        E[] newArray = com.google.common.collect.ObjectArrays.newArray((Class<E>)
-                        arrays.getClass().getComponentType().getComponentType(),
+        E[] newArray = newArray((Class<E>) arrays.getClass().getComponentType().getComponentType(),
                 Arrays.stream(arrays).mapToInt((a) -> a.length).sum());
         int offset = 0;
 
         for (E[] array : arrays) {
-            copyElements(array, newArray, offset);
+            System.arraycopy(array, 0, newArray, offset, array.length);
             offset += array.length;
         }
 
@@ -568,8 +559,7 @@ public final class ArrayUtil {
      * {@param indexesToRemove}.get(i) in the same order
      */
     public static <E> E[] filter(E @NotNull [] array, @NotNull BitSet indexesToRemove) {
-        E[] newArray = com.google.common.collect.ObjectArrays.newArray(array,
-                array.length - indexesToRemove.cardinality());
+        E[] newArray = newArray(array, array.length - indexesToRemove.cardinality());
         int filledSlots = 0;
         int startingIndexOfRange = indexesToRemove.get(0) ? 1 : 0;
         int endingIndexOfRange = 0;
@@ -618,12 +608,537 @@ public final class ArrayUtil {
      * and all elements from {@param index} shifted 1 index to the left
      */
     public static <E> E[] pop(E @NotNull [] array, int index) {
-        E[] newArray = com.google.common.collect.ObjectArrays.newArray(array, array.length - 1);
+        E[] newArray = newArray(array, array.length - 1);
 
         System.arraycopy(array, 0, newArray, 0, index);
         System.arraycopy(array, index + 1, newArray, index, array.length - index - 1);
 
         return newArray;
+    }
+
+    /**
+     * Set all elements of the specified array to the specified element.
+     *
+     * The effect is equal to using {@code Arrays.fill}
+     * but this implementation uses {@code System.arraycopy} to perform faster.
+     * This also means the array can't be accessed by external threads
+     * while initializing otherwise the results won't be reliable.
+     *
+     * @param a array to be initialized
+     * @param value value of every element after initializing
+     * @param <E> component type of the given array
+     * @return the array after initializing
+     * @since 1.0.0
+     */
+    public static <E> E[] fill(E @NotNull [] a, @Nullable E value) {
+        a[0] = value;
+        int i = 1;
+        int half = a.length >>> 1;
+
+        while (i < half) {
+            System.arraycopy(a, 0, a, i, i);
+            i <<= 1;
+        }
+
+        System.arraycopy(a, 0, a, i, a.length - i);
+        return a;
+    }
+
+    /**
+     * Set all elements of the specified array to the specified element.
+     *
+     * The effect is equal to using {@code Arrays.fill}
+     * but this implementation uses {@code System.arraycopy} to perform faster.
+     * This also means the array can't be accessed by external threads
+     * while initializing otherwise the results won't be reliable.
+     *
+     * @param a array to be initialized
+     * @param from the first index to be initialized (inclusive)
+     * @param to the last index to be initialized (exclusive)
+     * @param value value of every element after initializing
+     * @param <E> component type of the given array
+     * @return the array after initializing
+     * @since 1.0.0
+     */
+    public static <E> E[] fill(E @NotNull [] a, int from, int to, @Nullable E value) {
+        Preconditions.checkPositionIndexes(from, to, a.length);
+
+        a[from] = value;
+        int i = 1;
+        int half = (to - from) >>> 1;
+
+        while (i < half) {
+            System.arraycopy(a, from, a, from + i, i);
+            i <<= 1;
+        }
+
+        System.arraycopy(a, from, a,from + i, to - i - from);
+        return a;
+    }
+
+    /**
+     * Set all elements of the specified array to the specified element.
+     *
+     * The effect is equal to using {@code Arrays.fill}
+     * but this implementation uses {@code System.arraycopy} to perform faster.
+     * This also means the array can't be accessed by external threads
+     * while initializing otherwise the results won't be reliable.
+     *
+     * @param a array to be initialized
+     * @param value value of every element after initializing
+     * @return the array after initializing
+     * @since 1.0.0
+     */
+    public static boolean[] fill(boolean @NotNull [] a, boolean value) {
+        a[0] = value;
+        int i = 1;
+        int half = a.length >>> 1;
+
+        while (i < half) {
+            System.arraycopy(a, 0, a, i, i);
+            i <<= 1;
+        }
+
+        System.arraycopy(a, 0, a, i, a.length - i);
+        return a;
+    }
+
+    /**
+     * Set all elements of the specified array to the specified element.
+     *
+     * The effect is equal to using {@code Arrays.fill}
+     * but this implementation uses {@code System.arraycopy} to perform faster.
+     * This also means the array can't be accessed by external threads
+     * while initializing otherwise the results won't be reliable.
+     *
+     * @param a array to be initialized
+     * @param from the first index to be initialized (inclusive)
+     * @param to the last index to be initialized (exclusive)
+     * @param value value of every element after initializing
+     * @return the array after initializing
+     * @since 1.0.0
+     */
+    public static boolean[] fill(boolean @NotNull [] a, int from, int to, boolean value) {
+        Preconditions.checkPositionIndexes(from, to, a.length);
+
+        a[from] = value;
+        int i = 1;
+        int half = (to - from) >>> 1;
+
+        while (i < half) {
+            System.arraycopy(a, from, a, from + i, i);
+            i <<= 1;
+        }
+
+        System.arraycopy(a, from, a,from + i, to - i - from);
+        return a;
+    }
+
+    /**
+     * Set all elements of the specified array to the specified element.
+     *
+     * The effect is equal to using {@code Arrays.fill}
+     * but this implementation uses {@code System.arraycopy} to perform faster.
+     * This also means the array can't be accessed by external threads
+     * while initializing otherwise the results won't be reliable.
+     *
+     * @param a array to be initialized
+     * @param value value of every element after initializing
+     * @return the array after initializing
+     * @since 1.0.0
+     */
+    public static byte[] fill(byte @NotNull [] a, byte value) {
+        a[0] = value;
+        int i = 1;
+        int half = a.length >>> 1;
+
+        while (i < half) {
+            System.arraycopy(a, 0, a, i, i);
+            i <<= 1;
+        }
+
+        System.arraycopy(a, 0, a, i, a.length - i);
+        return a;
+    }
+
+    /**
+     * Set all elements of the specified array to the specified element.
+     *
+     * The effect is equal to using {@code Arrays.fill}
+     * but this implementation uses {@code System.arraycopy} to perform faster.
+     * This also means the array can't be accessed by external threads
+     * while initializing otherwise the results won't be reliable.
+     *
+     * @param a array to be initialized
+     * @param from the first index to be initialized (inclusive)
+     * @param to the last index to be initialized (exclusive)
+     * @param value value of every element after initializing
+     * @return the array after initializing
+     * @since 1.0.0
+     */
+    public static byte[] fill(byte @NotNull [] a, int from, int to, byte value) {
+        Preconditions.checkPositionIndexes(from, to, a.length);
+
+        a[from] = value;
+        int i = 1;
+        int half = (to - from) >>> 1;
+
+        while (i < half) {
+            System.arraycopy(a, from, a, from + i, i);
+            i <<= 1;
+        }
+
+        System.arraycopy(a, from, a,from + i, to - i - from);
+        return a;
+    }
+
+    /**
+     * Set all elements of the specified array to the specified element.
+     *
+     * The effect is equal to using {@code Arrays.fill}
+     * but this implementation uses {@code System.arraycopy} to perform faster.
+     * This also means the array can't be accessed by external threads
+     * while initializing otherwise the results won't be reliable.
+     *
+     * @param a array to be initialized
+     * @param value value of every element after initializing
+     * @return the array after initializing
+     * @since 1.0.0
+     */
+    public static short[] fill(short @NotNull [] a, short value) {
+        a[0] = value;
+        int i = 1;
+        int half = a.length >>> 1;
+
+        while (i < half) {
+            System.arraycopy(a, 0, a, i, i);
+            i <<= 1;
+        }
+
+        System.arraycopy(a, 0, a, i, a.length - i);
+        return a;
+    }
+
+    /**
+     * Set all elements of the specified array to the specified element.
+     *
+     * The effect is equal to using {@code Arrays.fill}
+     * but this implementation uses {@code System.arraycopy} to perform faster.
+     * This also means the array can't be accessed by external threads
+     * while initializing otherwise the results won't be reliable.
+     *
+     * @param a array to be initialized
+     * @param from the first index to be initialized (inclusive)
+     * @param to the last index to be initialized (exclusive)
+     * @param value value of every element after initializing
+     * @return the array after initializing
+     * @since 1.0.0
+     */
+    public static short[] fill(short @NotNull [] a, int from, int to, short value) {
+        Preconditions.checkPositionIndexes(from, to, a.length);
+
+        a[from] = value;
+        int i = 1;
+        int half = (to - from) >>> 1;
+
+        while (i < half) {
+            System.arraycopy(a, from, a, from + i, i);
+            i <<= 1;
+        }
+
+        System.arraycopy(a, from, a,from + i, to - i - from);
+        return a;
+    }
+
+    /**
+     * Set all elements of the specified array to the specified element.
+     *
+     * The effect is equal to using {@code Arrays.fill}
+     * but this implementation uses {@code System.arraycopy} to perform faster.
+     * This also means the array can't be accessed by external threads
+     * while initializing otherwise the results won't be reliable.
+     *
+     * @param a array to be initialized
+     * @param value value of every element after initializing
+     * @return the array after initializing
+     * @since 1.0.0
+     */
+    public static int[] fill(int @NotNull [] a, int value) {
+
+        a[0] = value;
+        int i = 1;
+        int half = a.length >>> 1;
+
+        while (i < half) {
+            System.arraycopy(a, 0, a, i, i);
+            i <<= 1;
+        }
+
+        System.arraycopy(a, 0, a, i, a.length - i);
+        return a;
+    }
+
+    /**
+     * Set all elements of the specified array to the specified element.
+     *
+     * The effect is equal to using {@code Arrays.fill}
+     * but this implementation uses {@code System.arraycopy} to perform faster.
+     * This also means the array can't be accessed by external threads
+     * while initializing otherwise the results won't be reliable.
+     *
+     * @param a array to be initialized
+     * @param from the first index to be initialized (inclusive)
+     * @param to the last index to be initialized (exclusive)
+     * @param value value of every element after initializing
+     * @return the array after initializing
+     * @since 1.0.0
+     */
+    public static int[] fill(int @NotNull [] a, int from, int to, int value) {
+        Preconditions.checkPositionIndexes(from, to, a.length);
+
+        a[from] = value;
+        int i = 1;
+        int half = (to - from) >>> 1;
+
+        while (i < half) {
+            System.arraycopy(a, from, a, from + i, i);
+            i <<= 1;
+        }
+
+        System.arraycopy(a, from, a,from + i, to - i - from);
+        return a;
+    }
+
+    /**
+     * Set all elements of the specified array to the specified element.
+     *
+     * The effect is equal to using {@code Arrays.fill}
+     * but this implementation uses {@code System.arraycopy} to perform faster.
+     * This also means the array can't be accessed by external threads
+     * while initializing otherwise the results won't be reliable.
+     *
+     * @param a array to be initialized
+     * @param value value of every element after initializing
+     * @return the array after initializing
+     * @since 1.0.0
+     */
+    public static long[] fill(long @NotNull [] a, long value) {
+        a[0] = value;
+        int i = 1;
+        int half = a.length >>> 1;
+
+        while (i < half) {
+            System.arraycopy(a, 0, a, i, i);
+            i <<= 1;
+        }
+
+        System.arraycopy(a, 0, a, i, a.length - i);
+        return a;
+    }
+
+    /**
+     * Set all elements of the specified array to the specified element.
+     *
+     * The effect is equal to using {@code Arrays.fill}
+     * but this implementation uses {@code System.arraycopy} to perform faster.
+     * This also means the array can't be accessed by external threads
+     * while initializing otherwise the results won't be reliable.
+     *
+     * @param a array to be initialized
+     * @param from the first index to be initialized (inclusive)
+     * @param to the last index to be initialized (exclusive)
+     * @param value value of every element after initializing
+     * @return the array after initializing
+     * @since 1.0.0
+     */
+    public static long[] fill(long @NotNull [] a, int from, int to, long value) {
+        Preconditions.checkPositionIndexes(from, to, a.length);
+
+        a[from] = value;
+        int i = 1;
+        int half = (to - from) >>> 1;
+
+        while (i < half) {
+            System.arraycopy(a, from, a, from + i, i);
+            i <<= 1;
+        }
+
+        System.arraycopy(a, from, a,from + i, to - i - from);
+        return a;
+    }
+
+    /**
+     * Set all elements of the specified array to the specified element.
+     *
+     * The effect is equal to using {@code Arrays.fill}
+     * but this implementation uses {@code System.arraycopy} to perform faster.
+     * This also means the array can't be accessed by external threads
+     * while initializing otherwise the results won't be reliable.
+     *
+     * @param a array to be initialized
+     * @param value value of every element after initializing
+     * @return the array after initializing
+     * @since 1.0.0
+     */
+    public static char[] fill(char @NotNull [] a, char value) {
+        a[0] = value;
+        int i = 1;
+        int half = a.length >>> 1;
+
+        while (i < half) {
+            System.arraycopy(a, 0, a, i, i);
+            i <<= 1;
+        }
+
+        System.arraycopy(a, 0, a, i, a.length - i);
+        return a;
+    }
+
+    /**
+     * Set all elements of the specified array to the specified element.
+     *
+     * The effect is equal to using {@code Arrays.fill}
+     * but this implementation uses {@code System.arraycopy} to perform faster.
+     * This also means the array can't be accessed by external threads
+     * while initializing otherwise the results won't be reliable.
+     *
+     * @param a array to be initialized
+     * @param from the first index to be initialized (inclusive)
+     * @param to the last index to be initialized (exclusive)
+     * @param value value of every element after initializing
+     * @return the array after initializing
+     * @since 1.0.0
+     */
+    public static char[] fill(char @NotNull [] a, int from, int to, char value) {
+        Preconditions.checkPositionIndexes(from, to, a.length);
+
+        a[from] = value;
+        int i = 1;
+        int half = (to - from) >>> 1;
+
+        while (i < half) {
+            System.arraycopy(a, from, a, from + i, i);
+            i <<= 1;
+        }
+
+        System.arraycopy(a, from, a,from + i, to - i - from);
+        return a;
+    }
+
+    /**
+     * Set all elements of the specified array to the specified element.
+     *
+     * The effect is equal to using {@code Arrays.fill}
+     * but this implementation uses {@code System.arraycopy} to perform faster.
+     * This also means the array can't be accessed by external threads
+     * while initializing otherwise the results won't be reliable.
+     *
+     * @param a array to be initialized
+     * @param value value of every element after initializing
+     * @return the array after initializing
+     * @since 1.0.0
+     */
+    public static float[] fill(float @NotNull [] a, float value) {
+        a[0] = value;
+        int i = 1;
+        int half = a.length >>> 1;
+
+        while (i < half) {
+            System.arraycopy(a, 0, a, i, i);
+            i <<= 1;
+        }
+
+        System.arraycopy(a, 0, a, i, a.length - i);
+        return a;
+    }
+
+    /**
+     * Set all elements of the specified array to the specified element.
+     *
+     * The effect is equal to using {@code Arrays.fill}
+     * but this implementation uses {@code System.arraycopy} to perform faster.
+     * This also means the array can't be accessed by external threads
+     * while initializing otherwise the results won't be reliable.
+     *
+     * @param a array to be initialized
+     * @param from the first index to be initialized (inclusive)
+     * @param to the last index to be initialized (exclusive)
+     * @param value value of every element after initializing
+     * @return the array after initializing
+     * @since 1.0.0
+     */
+    public static float[] fill(float @NotNull [] a, int from, int to, float value) {
+        Preconditions.checkPositionIndexes(from, to, a.length);
+
+        a[from] = value;
+        int i = 1;
+        int half = (to - from) >>> 1;
+
+        while (i < half) {
+            System.arraycopy(a, from, a, from + i, i);
+            i <<= 1;
+        }
+
+        System.arraycopy(a, from, a,from + i, to - i - from);
+        return a;
+    }
+
+    /**
+     * Set all elements of the specified array to the specified element.
+     *
+     * The effect is equal to using {@code Arrays.fill}
+     * but this implementation uses {@code System.arraycopy} to perform faster.
+     * This also means the array can't be accessed by external threads
+     * while initializing otherwise the results won't be reliable.
+     *
+     * @param a array to be initialized
+     * @param value value of every element after initializing
+     * @return the array after initializing
+     * @since 1.0.0
+     */
+    public static double[] fill(double @NotNull [] a, double value) {
+        a[0] = value;
+        int i = 1;
+        int half = a.length >>> 1;
+
+        while (i < half) {
+            System.arraycopy(a, 0, a, i, i);
+            i <<= 1;
+        }
+
+        System.arraycopy(a, 0, a, i, a.length - i);
+        return a;
+    }
+
+    /**
+     * Set all elements of the specified array to the specified element.
+     *
+     * The effect is equal to using {@code Arrays.fill}
+     * but this implementation uses {@code System.arraycopy} to perform faster.
+     * This also means the array can't be accessed by external threads
+     * while initializing to ensure correct results.
+     *
+     * @param a array to be initialized
+     * @param from the first index to be initialized (inclusive)
+     * @param to the last index to be initialized (exclusive)
+     * @param value value of every element after initializing
+     * @return the array after initializing
+     * @since 1.0.0
+     */
+    public static double[] fill(double @NotNull [] a, int from, int to, double value) {
+        Preconditions.checkPositionIndexes(from, to, a.length);
+
+        a[from] = value;
+        int i = 1;
+        int half = (to - from) >>> 1;
+
+        while (i < half) {
+            System.arraycopy(a, from, a, from + i, i);
+            i <<= 1;
+        }
+
+        System.arraycopy(a, from, a,from + i, to - i - from);
+        return a;
     }
 
     /**
@@ -653,7 +1168,7 @@ public final class ArrayUtil {
     public static boolean[] setRange(boolean @NotNull [] a, Int2BooleanFunction mapper, int from, int to) {
         Preconditions.checkPositionIndexes(from, to, a.length);
 
-        while (to-- > from) {
+        while (to-- != from) {
             a[to] = mapper.apply(to);
         }
 

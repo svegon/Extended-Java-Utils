@@ -29,6 +29,7 @@ import it.unimi.dsi.fastutil.bytes.ByteBinaryOperator;
 import it.unimi.dsi.fastutil.chars.CharBinaryOperator;
 import it.unimi.dsi.fastutil.floats.FloatBinaryOperator;
 import it.unimi.dsi.fastutil.shorts.ShortBinaryOperator;
+import svegon.utils.collections.collecting.*;
 import svegon.utils.interfaces.function.*;
 import svegon.utils.optional.*;
 
@@ -359,6 +360,50 @@ public final class ReduceOps {
 
     /**
      * Constructs a {@code TerminalOp} that implements a mutable reduce on
+     * reference values.
+     *
+     * @param <I> the type of the intermediate reduction result
+     * @param collector a {@code BooleanCollector} defining the reduction
+     * @return a {@code ReduceOp} implementing the reduction
+     */
+    public static <I> TerminalOp<Boolean, I> makeBoolean(BooleanCollector<I, ?> collector) {
+        Supplier<I> supplier = Objects.requireNonNull(collector).supplier();
+        ObjectBooleanConsumer<I> accumulator = collector.accumulator();
+        BinaryOperator<I> combiner = collector.combiner();
+
+        class ReducingSink extends Box<I> implements AccumulatingSink<Boolean, I, ReducingSink>, Sink.OfBoolean {
+            @Override
+            public void begin(long size) {
+                state = supplier.get();
+            }
+
+            @Override
+            public void accept(boolean value) {
+                accumulator.accept(state, value);
+            }
+
+            @Override
+            public void combine(ReducingSink other) {
+                state = combiner.apply(state, other.state);
+            }
+        }
+
+        return new ReduceOp<Boolean, I, ReducingSink>(StreamShape.BOOLEAN_VALUE) {
+            @Override
+            public ReducingSink makeSink() {
+                return new ReducingSink();
+            }
+
+            @Override
+            public int getOpFlags() {
+                return collector.characteristics().contains(Collector.Characteristics.UNORDERED)
+                        ? StreamOpFlag.NOT_ORDERED : 0;
+            }
+        };
+    }
+
+    /**
+     * Constructs a {@code TerminalOp} that implements a mutable reduce on
      * {@code double} values.
      *
      * @param <R> the type of the result
@@ -369,7 +414,7 @@ public final class ReduceOps {
      * @return a {@code TerminalOp} implementing the reduction
      */
     public static <R> TerminalOp<Boolean, R> makeBoolean(Supplier<R> supplier, ObjectBooleanConsumer<R> accumulator,
-                                                     BinaryOperator<R> combiner) {
+                                                         BinaryOperator<R> combiner) {
         Objects.requireNonNull(supplier);
         Objects.requireNonNull(accumulator);
         Objects.requireNonNull(combiner);
@@ -529,6 +574,50 @@ public final class ReduceOps {
             @Override
             public ReducingSink makeSink() {
                 return new ReducingSink();
+            }
+        };
+    }
+
+    /**
+     * Constructs a {@code TerminalOp} that implements a mutable reduce on
+     * reference values.
+     *
+     * @param <I> the type of the intermediate reduction result
+     * @param collector a {@code ByteCollector} defining the reduction
+     * @return a {@code ReduceOp} implementing the reduction
+     */
+    public static <I> TerminalOp<Byte, I> makeByte(ByteCollector<I, ?> collector) {
+        Supplier<I> supplier = Objects.requireNonNull(collector).supplier();
+        ObjectByteConsumer<I> accumulator = collector.accumulator();
+        BinaryOperator<I> combiner = collector.combiner();
+
+        class ReducingSink extends Box<I> implements AccumulatingSink<Byte, I, ReducingSink>, Sink.OfByte {
+            @Override
+            public void begin(long size) {
+                state = supplier.get();
+            }
+
+            @Override
+            public void combine(ReducingSink other) {
+                state = combiner.apply(state, other.state);
+            }
+
+            @Override
+            public void accept(byte value) {
+                accumulator.accept(state, value);
+            }
+        }
+
+        return new ReduceOp<Byte, I, ReducingSink>(StreamShape.BYTE_VALUE) {
+            @Override
+            public ReducingSink makeSink() {
+                return new ReducingSink();
+            }
+
+            @Override
+            public int getOpFlags() {
+                return collector.characteristics().contains(Collector.Characteristics.UNORDERED)
+                        ? StreamOpFlag.NOT_ORDERED : 0;
             }
         };
     }
@@ -705,6 +794,50 @@ public final class ReduceOps {
             @Override
             public ReducingSink makeSink() {
                 return new ReducingSink();
+            }
+        };
+    }
+
+    /**
+     * Constructs a {@code TerminalOp} that implements a mutable reduce on
+     * reference values.
+     *
+     * @param <I> the type of the intermediate reduction result
+     * @param collector a {@code ShortCollector} defining the reduction
+     * @return a {@code ReduceOp} implementing the reduction
+     */
+    public static <I> TerminalOp<Short, I> makeShort(ShortCollector<I, ?> collector) {
+        Supplier<I> supplier = Objects.requireNonNull(collector).supplier();
+        ObjectShortConsumer<I> accumulator = collector.accumulator();
+        BinaryOperator<I> combiner = collector.combiner();
+
+        class ReducingSink extends Box<I> implements AccumulatingSink<Short, I, ReducingSink>, Sink.OfShort {
+            @Override
+            public void begin(long size) {
+                state = supplier.get();
+            }
+
+            @Override
+            public void combine(ReducingSink other) {
+                state = combiner.apply(state, other.state);
+            }
+
+            @Override
+            public void accept(short value) {
+                accumulator.accept(state, value);
+            }
+        }
+
+        return new ReduceOp<Short, I, ReducingSink>(StreamShape.SHORT_VALUE) {
+            @Override
+            public ReducingSink makeSink() {
+                return new ReducingSink();
+            }
+
+            @Override
+            public int getOpFlags() {
+                return collector.characteristics().contains(Collector.Characteristics.UNORDERED)
+                        ? StreamOpFlag.NOT_ORDERED : 0;
             }
         };
     }
@@ -889,6 +1022,50 @@ public final class ReduceOps {
 
     /**
      * Constructs a {@code TerminalOp} that implements a mutable reduce on
+     * reference values.
+     *
+     * @param <I> the type of the intermediate reduction result
+     * @param collector a {@code IntCollector} defining the reduction
+     * @return a {@code ReduceOp} implementing the reduction
+     */
+    public static <I> TerminalOp<Integer, I> makeInt(IntCollector<I, ?> collector) {
+        Supplier<I> supplier = Objects.requireNonNull(collector).supplier();
+        ObjIntConsumer<I> accumulator = collector.accumulator();
+        BinaryOperator<I> combiner = collector.combiner();
+
+        class ReducingSink extends Box<I> implements AccumulatingSink<Integer, I, ReducingSink>, Sink.OfInt {
+            @Override
+            public void begin(long size) {
+                state = supplier.get();
+            }
+
+            @Override
+            public void combine(ReducingSink other) {
+                state = combiner.apply(state, other.state);
+            }
+
+            @Override
+            public void accept(int value) {
+                accumulator.accept(state, value);
+            }
+        }
+
+        return new ReduceOp<Integer, I, ReducingSink>(StreamShape.INT_VALUE) {
+            @Override
+            public ReducingSink makeSink() {
+                return new ReducingSink();
+            }
+
+            @Override
+            public int getOpFlags() {
+                return collector.characteristics().contains(Collector.Characteristics.UNORDERED)
+                        ? StreamOpFlag.NOT_ORDERED : 0;
+            }
+        };
+    }
+
+    /**
+     * Constructs a {@code TerminalOp} that implements a mutable reduce on
      * {@code int} values.
      *
      * @param <R> The type of the result
@@ -1063,6 +1240,50 @@ public final class ReduceOps {
 
     /**
      * Constructs a {@code TerminalOp} that implements a mutable reduce on
+     * reference values.
+     *
+     * @param <I> the type of the intermediate reduction result
+     * @param collector a {@code LongCollector} defining the reduction
+     * @return a {@code ReduceOp} implementing the reduction
+     */
+    public static <I> TerminalOp<Long, I> makeLong(LongCollector<I, ?> collector) {
+        Supplier<I> supplier = Objects.requireNonNull(collector).supplier();
+        ObjLongConsumer<I> accumulator = collector.accumulator();
+        BinaryOperator<I> combiner = collector.combiner();
+
+        class ReducingSink extends Box<I> implements AccumulatingSink<Long, I, ReducingSink>, Sink.OfLong {
+            @Override
+            public void begin(long size) {
+                state = supplier.get();
+            }
+
+            @Override
+            public void combine(ReducingSink other) {
+                state = combiner.apply(state, other.state);
+            }
+
+            @Override
+            public void accept(long value) {
+                accumulator.accept(state, value);
+            }
+        }
+
+        return new ReduceOp<Long, I, ReducingSink>(StreamShape.LONG_VALUE) {
+            @Override
+            public ReducingSink makeSink() {
+                return new ReducingSink();
+            }
+
+            @Override
+            public int getOpFlags() {
+                return collector.characteristics().contains(Collector.Characteristics.UNORDERED)
+                        ? StreamOpFlag.NOT_ORDERED : 0;
+            }
+        };
+    }
+
+    /**
+     * Constructs a {@code TerminalOp} that implements a mutable reduce on
      * {@code long} values.
      *
      * @param <R> the type of the result
@@ -1227,6 +1448,50 @@ public final class ReduceOps {
             @Override
             public ReducingSink makeSink() {
                 return new ReducingSink();
+            }
+        };
+    }
+
+    /**
+     * Constructs a {@code TerminalOp} that implements a mutable reduce on
+     * reference values.
+     *
+     * @param <I> the type of the intermediate reduction result
+     * @param collector a {@code CharCollector} defining the reduction
+     * @return a {@code ReduceOp} implementing the reduction
+     */
+    public static <I> TerminalOp<Character, I> makeChar(CharCollector<I, ?> collector) {
+        Supplier<I> supplier = Objects.requireNonNull(collector).supplier();
+        ObjectCharConsumer<I> accumulator = collector.accumulator();
+        BinaryOperator<I> combiner = collector.combiner();
+
+        class ReducingSink extends Box<I> implements AccumulatingSink<Character, I, ReducingSink>, Sink.OfChar {
+            @Override
+            public void begin(long size) {
+                state = supplier.get();
+            }
+
+            @Override
+            public void combine(ReducingSink other) {
+                state = combiner.apply(state, other.state);
+            }
+
+            @Override
+            public void accept(char value) {
+                accumulator.accept(state, value);
+            }
+        }
+
+        return new ReduceOp<Character, I, ReducingSink>(StreamShape.CHAR_VALUE) {
+            @Override
+            public ReducingSink makeSink() {
+                return new ReducingSink();
+            }
+
+            @Override
+            public int getOpFlags() {
+                return collector.characteristics().contains(Collector.Characteristics.UNORDERED)
+                        ? StreamOpFlag.NOT_ORDERED : 0;
             }
         };
     }
@@ -1407,6 +1672,50 @@ public final class ReduceOps {
 
     /**
      * Constructs a {@code TerminalOp} that implements a mutable reduce on
+     * reference values.
+     *
+     * @param <I> the type of the intermediate reduction result
+     * @param collector a {@code FloatCollector} defining the reduction
+     * @return a {@code ReduceOp} implementing the reduction
+     */
+    public static <I> TerminalOp<Float, I> makeFloat(FloatCollector<I, ?> collector) {
+        Supplier<I> supplier = Objects.requireNonNull(collector).supplier();
+        ObjectFloatConsumer<I> accumulator = collector.accumulator();
+        BinaryOperator<I> combiner = collector.combiner();
+
+        class ReducingSink extends Box<I> implements AccumulatingSink<Float, I, ReducingSink>, Sink.OfFloat {
+            @Override
+            public void begin(long size) {
+                state = supplier.get();
+            }
+
+            @Override
+            public void combine(ReducingSink other) {
+                state = combiner.apply(state, other.state);
+            }
+
+            @Override
+            public void accept(float value) {
+                accumulator.accept(state, value);
+            }
+        }
+
+        return new ReduceOp<Float, I, ReducingSink>(StreamShape.FLOAT_VALUE) {
+            @Override
+            public ReducingSink makeSink() {
+                return new ReducingSink();
+            }
+
+            @Override
+            public int getOpFlags() {
+                return collector.characteristics().contains(Collector.Characteristics.UNORDERED)
+                        ? StreamOpFlag.NOT_ORDERED : 0;
+            }
+        };
+    }
+
+    /**
+     * Constructs a {@code TerminalOp} that implements a mutable reduce on
      * {@code double} values.
      *
      * @param <R> the type of the result
@@ -1573,6 +1882,50 @@ public final class ReduceOps {
             @Override
             public ReducingSink makeSink() {
                 return new ReducingSink();
+            }
+        };
+    }
+
+    /**
+     * Constructs a {@code TerminalOp} that implements a mutable reduce on
+     * reference values.
+     *
+     * @param <I> the type of the intermediate reduction result
+     * @param collector a {@code DoubleCollector} defining the reduction
+     * @return a {@code ReduceOp} implementing the reduction
+     */
+    public static <I> TerminalOp<Double, I> makeDouble(DoubleCollector<I, ?> collector) {
+        Supplier<I> supplier = Objects.requireNonNull(collector).supplier();
+        ObjDoubleConsumer<I> accumulator = collector.accumulator();
+        BinaryOperator<I> combiner = collector.combiner();
+
+        class ReducingSink extends Box<I> implements AccumulatingSink<Double, I, ReducingSink>, Sink.OfDouble {
+            @Override
+            public void begin(long size) {
+                state = supplier.get();
+            }
+
+            @Override
+            public void combine(ReducingSink other) {
+                state = combiner.apply(state, other.state);
+            }
+
+            @Override
+            public void accept(double value) {
+                accumulator.accept(state, value);
+            }
+        }
+
+        return new ReduceOp<Double, I, ReducingSink>(StreamShape.DOUBLE_VALUE) {
+            @Override
+            public ReducingSink makeSink() {
+                return new ReducingSink();
+            }
+
+            @Override
+            public int getOpFlags() {
+                return collector.characteristics().contains(Collector.Characteristics.UNORDERED)
+                        ? StreamOpFlag.NOT_ORDERED : 0;
             }
         };
     }

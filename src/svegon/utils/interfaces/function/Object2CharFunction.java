@@ -6,6 +6,7 @@ import java.util.function.Function;
 public interface Object2CharFunction<T> extends Function<T, Character> {
     char applyToChar(T o);
 
+    @Deprecated
     @Override
     default Character apply(T t) {
         return applyToChar(t);

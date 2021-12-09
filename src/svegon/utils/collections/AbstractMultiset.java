@@ -8,6 +8,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 public abstract class AbstractMultiset<E> extends AbstractCollection<E> implements Multiset<E> {
+    private final Set<Entry<E>> entrySet = initEntrySet();
     private final Set<E> elementSet = initElementSet();
 
     @Override
@@ -77,9 +78,16 @@ public abstract class AbstractMultiset<E> extends AbstractCollection<E> implemen
     }
 
     @Override
+    public Set<Entry<E>> entrySet() {
+        return entrySet;
+    }
+
+    @Override
     public Set<E> elementSet() {
         return elementSet;
     }
+
+    protected abstract Set<Entry<E>> initEntrySet();
 
     protected Set<E> initElementSet() {
         return new AbstractSet<>() {

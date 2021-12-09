@@ -9,12 +9,9 @@ import java.util.*;
 import java.util.function.Predicate;
 
 /**
- * a version of {@code java.util.ArrayList} which passes a reference of ts array instead of copying where possible
- * for faster usage this implemntation doesn't have comod check, so you may want to enclose it
- * like {@code Collections.synchronizedList(new ExposedArrayList())}
+ * a version of {@code java.util.Vector} which passes a reference of its array instead of copying where possible
  * @param <E>
  */
-@NotThreadSafe
 public class ExposedArrayList<E> extends AbstractList<E> implements RandomAccess, Cloneable {
     private Object[] a;
 
@@ -31,7 +28,7 @@ public class ExposedArrayList<E> extends AbstractList<E> implements RandomAccess
     }
 
     @Override
-    public boolean add(E e) {
+    public synchronized boolean add(E e) {
         a = ArrayUtil.merge(a, e);
         return true;
     }
@@ -48,7 +45,7 @@ public class ExposedArrayList<E> extends AbstractList<E> implements RandomAccess
     }
 
     @Override
-    public boolean contains(Object o) {
+    public synchronized boolean contains(Object o) {
         return Arrays.asList(a).contains(o);
     }
 
@@ -63,32 +60,32 @@ public class ExposedArrayList<E> extends AbstractList<E> implements RandomAccess
     }
 
     @Override
-    public boolean removeIf(Predicate<? super E> filter) {
-        Object[] data = a;
-        return !Arrays.equals(data, a = ArrayUtil.filter((E[]) data, filter));
+    @SuppressWarnings("unchecked")
+    public synchronized boolean removeIf(final Predicate<? super E> filter) {
+        return !Arrays.equals(a, a = ArrayUtil.filter(a, (o) -> filter.test((E) o)));
     }
 
     @Override
-    public boolean retainAll(final Collection<?> c) {
+    public boolean retainAll(final @NotNull Collection<?> c) {
         return removeIf((e) -> !c.contains(e));
     }
 
     @Override
-    public E set(int index, E element) {
+    public synchronized E set(int index, E element) {
         E e = get(index);
         a[index] = element;
         return e;
     }
 
     @Override
-    public void add(int index, E element) {
+    public synchronized void add(int index, E element) {
         if (index < 0 || index > size()) {
             throw new IndexOutOfBoundsException(index);
         }
 
         Object[] data = a;
         data = Arrays.copyOf(data, data.length + 1);
-        ArrayUtil.copyRange(data, index, data, index + 1, data.length - index - 1);
+        System.arraycopy(data, index, data, index + 1, data.length - index - 1);
         data[index] = element;
         a = data;
     }
@@ -101,7 +98,7 @@ public class ExposedArrayList<E> extends AbstractList<E> implements RandomAccess
     }
 
     @Override
-    public boolean remove(Object o) {
+    public synchronized boolean remove(Object o) {
         Object[] data = a;
         int i = Arrays.asList(data).indexOf(o);
 
@@ -119,20 +116,18 @@ public class ExposedArrayList<E> extends AbstractList<E> implements RandomAccess
     }
 
     @Override
-    public boolean addAll(int index, Collection<? extends E> c) {
+    public synchronized boolean addAll(int index, Collection<? extends E> c) {
         if (c.isEmpty()) {
             return false;
         }
 
-        Object[] data = a;
-        data = Arrays.copyOf(data, data.length + c.size());
-        ArrayUtil.copyRange(data, index, data, index + c.size(), data.length - index - c.size());
+        a = Arrays.copyOf(a, a.length + c.size());
+        System.arraycopy(a, index, a, index + c.size(), a.length - index - c.size());
 
         for (E element : c) {
-            data[index++] = element;
+            a[index++] = element;
         }
 
-        a = data;
         return true;
     }
 
@@ -142,7 +137,7 @@ public class ExposedArrayList<E> extends AbstractList<E> implements RandomAccess
     }
 
     @Override
-    public boolean equals(Object o) {
+    public synchronized boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -179,9 +174,9 @@ public class ExposedArrayList<E> extends AbstractList<E> implements RandomAccess
     }
 
     @Override
-    protected void removeRange(int fromIndex, int toIndex) {
+    protected synchronized void removeRange(int fromIndex, int toIndex) {
         Object[] data = a;
-        ArrayUtil.copyRange(data, toIndex, data, fromIndex, toIndex - fromIndex);
+        System.arraycopy(data, toIndex, data, fromIndex, toIndex - fromIndex);
         a = Arrays.copyOf(data, data.length + fromIndex - toIndex);
     }
 
@@ -214,7 +209,8 @@ public class ExposedArrayList<E> extends AbstractList<E> implements RandomAccess
             return (T[]) Arrays.copyOf(data, data.length, a.getClass());
         }
 
-        return ArrayUtil.copyElements(data, a);
+        System.arraycopy(data, 0, a, 0, data.length);
+        return a;
     }
 
     public final Object[] getArray() {

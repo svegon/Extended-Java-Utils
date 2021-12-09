@@ -52,7 +52,7 @@ import java.util.function.*;
 
 /**
  * Factory methods for constructing implementations of {@link Node} and
- * {@link Node.Builder} and their primitive specializations.  Fork/Join tasks
+ * {@link Node.Builder} and their fast specializations.  Fork/Join tasks
  * for collecting output from a {@link PipelineHelper} to a {@link Node} and
  * flattening {@link Node}s.
  *

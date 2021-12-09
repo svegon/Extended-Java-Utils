@@ -476,7 +476,7 @@ public class SpinedBuffer<E> extends AbstractSpinedBuffer implements Consumer<E>
     }
 
     /**
-     * An ordered collection of primitive values.  Elements can be added, but
+     * An ordered collection of fast values.  Elements can be added, but
      * not removed. Goes through a building phase, during which elements can be
      * added, and a traversal phase, during which elements can be traversed in
      * order but no further modifications are possible.
@@ -487,9 +487,9 @@ public class SpinedBuffer<E> extends AbstractSpinedBuffer implements Consumer<E>
      * no copying of elements is required.  This is usually beneficial in the case
      * where the results will be traversed a small number of times.
      *
-     * @param <E> the wrapper type for this primitive type
-     * @param <T_ARR> the array type for this primitive type
-     * @param <T_CONS> the Consumer type for this primitive type
+     * @param <E> the wrapper type for this fast type
+     * @param <T_ARR> the array type for this fast type
+     * @param <T_CONS> the Consumer type for this fast type
      */
     public abstract static class OfPrimitive<E, T_ARR, T_CONS> extends SpinedBuffer<E> implements Iterable<E> {
 

@@ -163,13 +163,8 @@ public final class MapUtil {
     }
 
     @Immutable
-    private static final class ImmutableNotNullEntry<K, V> implements Map.Entry<K, V> {
-        @NotNull
-        private final K key;
-        @NotNull
-        private final V value;
-
-        public ImmutableNotNullEntry(@NotNull K key, @NotNull V value) {
+    private record ImmutableNotNullEntry<K, V>(@NotNull K key, @NotNull V value) implements Map.Entry<K, V> {
+        private ImmutableNotNullEntry(@NotNull K key, @NotNull V value) {
             this.key = key;
             this.value = value;
         }
@@ -202,7 +197,7 @@ public final class MapUtil {
 
         @Override
         public int hashCode() {
-            return 31 * getKey().hashCode() + getValue().hashCode();
+            return getKey().hashCode() ^ getValue().hashCode();
         }
 
         @Override
@@ -298,7 +293,7 @@ public final class MapUtil {
 
         @Override
         public int hashCode() {
-            return 31 * getKey().hashCode();
+            return getKey().hashCode();
         }
 
         @Override

@@ -308,7 +308,7 @@ public interface Node<T> {
          * {@inheritDoc}
          *
          * @implSpec the default implementation invokes the generator to create
-         * an instance of a boxed primitive array with a length of
+         * an instance of a boxed fast array with a length of
          * {@link #count()} and then invokes {@link #copyInto(T[], int)} with
          * that array at an offset of 0.
          */
@@ -326,7 +326,7 @@ public interface Node<T> {
         }
 
         /**
-         * Views this node as a primitive array.
+         * Views this node as a fast array.
          *
          * <p>Depending on the underlying implementation this may return a
          * reference to an internal array rather than a copy.  It is the callers
@@ -338,15 +338,15 @@ public interface Node<T> {
         T_ARR asPrimitiveArray();
 
         /**
-         * Creates a new primitive array.
+         * Creates a new fast array.
          *
-         * @param count the length of the primitive array.
-         * @return the new primitive array.
+         * @param count the length of the fast array.
+         * @return the new fast array.
          */
         T_ARR newArray(int count);
 
         /**
-         * Copies the content of this {@code Node} into a primitive array,
+         * Copies the content of this {@code Node} into a fast array,
          * starting at a given offset into the array.  It is the caller's
          * responsibility to ensure there is sufficient room in the array.
          *

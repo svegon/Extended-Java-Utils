@@ -1,15 +1,27 @@
 package svegon.utils.collections;
 
+import com.google.common.base.Preconditions;
+import com.google.common.math.IntMath;
+import it.unimi.dsi.fastutil.booleans.BooleanList;
+import it.unimi.dsi.fastutil.booleans.BooleanListIterator;
+import it.unimi.dsi.fastutil.booleans.BooleanPredicate;
+import svegon.utils.interfaces.function.IntInt2ObjectFunction;
+import svegon.utils.interfaces.function.IntIntInt2ObjectFunction;
 import svegon.utils.interfaces.function.IntObjectBiFunction;
 import svegon.utils.math.MathUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import svegon.utils.fast.util.booleans.TransformingBooleanListIterator;
+import svegon.utils.fast.util.booleans.TransformingBooleanRandomAccessList;
+import svegon.utils.fast.util.booleans.TransformingBooleanSequentialList;
 
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public final class ListUtil {
@@ -17,23 +29,28 @@ public final class ListUtil {
         throw new AssertionError();
     }
 
+    public static <E> Vector<E> newSyncedList() {
+        return new Vector<>();
+    }
+
     public static <E> FixedCacheCombinedList<E> newFixedCacheCombinedList(ImmutableList<List<E>> cache) {
         return new FixedCacheCombinedList<>();
     }
 
-    public static  <E> FixedCacheCombinedList<E> newFixedCacheCombinedList(List<? extends E>... collections) {
+    public static <E> FixedCacheCombinedList<E> newFixedCacheCombinedList(List<? extends E>... collections) {
         return new FixedCacheCombinedList<>(collections);
     }
 
-    public static  <E> FixedCacheCombinedList<E> newFixedCacheCombinedList(Iterable<? extends Collection<? extends E>>
-                                                                                   collections) {
+    @SuppressWarnings("unchecked")
+    public static <E> FixedCacheCombinedList<E> newFixedCacheCombinedList(Iterable<? extends Collection<? extends E>>
+                                                                                  collections) {
         return collections instanceof Collection
                 ? new FixedCacheCombinedList<>((Collection<? extends Collection<? extends E>>) collections)
                 : new FixedCacheCombinedList<>(Lists.newArrayList(collections));
     }
 
-    public static  <E> FixedCacheCombinedList<E> newFixedCacheCombinedList(final Iterator<? extends Collection<? extends E>>
-                                                                                   collections) {
+    public static <E> FixedCacheCombinedList<E> newFixedCacheCombinedList(final Iterator<? extends Collection<? extends E>>
+                                                                                  collections) {
         return new FixedCacheCombinedList<>(Lists.newArrayList(collections));
     }
 
@@ -59,6 +76,10 @@ public final class ListUtil {
         return capacity == 0 ? new ExposedArrayList<>() : new ExposedArrayList<>(new Object[capacity]);
     }
 
+    public static StringAsList charactersOf(String string) {
+        return StringAsList.of(string);
+    }
+
     @SafeVarargs
     public static <E, L extends List<E>> L merge(IntFunction<L> resultInstanceSupplier, List<E>... lists) {
         L list = resultInstanceSupplier.apply(Arrays.stream(lists).mapToInt(List::size).sum());
@@ -78,6 +99,18 @@ public final class ListUtil {
         return merge(Lists::newArrayListWithCapacity, lists);
     }
 
+    public static <E, L extends List<E>> List<L> partition(L list, int size) {
+        Preconditions.checkNotNull(list);
+        Preconditions.checkArgument(size > 0);
+        return new Partition<>(list, size);
+    }
+
+    public static <E> BooleanList transformToBoolean(List<E> list, Predicate<? super E> function) {
+        Preconditions.checkNotNull(function);
+        return list instanceof RandomAccess ? new L2ZRATransformingList<>(list, function)
+                : new L2ZTransformingList<>(Preconditions.checkNotNull(list), function);
+    }
+
     public static <E> void transformEach(List<E> list, IntObjectBiFunction<E, E> transformingOperator) {
         Objects.requireNonNull(transformingOperator);
 
@@ -88,26 +121,12 @@ public final class ListUtil {
         }
     }
 
-    public static <E> List<E> repeat(@Nullable E element, int times) {
+    public static <E> List<E> repeat(final @Nullable E element, final int times) {
         if (times < 0) {
-            throw new IllegalArgumentException("time is negative: " + times);
+            throw new IllegalArgumentException("amount is negative: " + times);
         }
 
-        return new AbstractList<E>() {
-            @Override
-            public E get(int index) {
-                if (index < 0 || index >= size()) {
-                    throw new IndexOutOfBoundsException();
-                }
-
-                return element;
-            }
-
-            @Override
-            public int size() {
-                return times;
-            }
-        };
+        return new ElementRepetition<>(element, times);
     }
 
     public static <E> List<E> iterate(IntFunction<E> elementAccessor, int size) {
@@ -154,17 +173,88 @@ public final class ListUtil {
         return new IterationBasedList<>(dimensions, Objects.requireNonNull(elementAccessor));
     }
 
-    public static <E> List<E> subList(List<E> list, int fromIndex, int toIndex) {
-        return list instanceof RandomAccess ? new RandomAccessSubList<>(Objects.requireNonNull(list), fromIndex,
-                toIndex) : new SubList<>(Objects.requireNonNull(list), fromIndex, toIndex);
-    }
+    private static class ElementRepetition<E> extends AbstractList<E> implements RandomAccess {
+        private final E element;
+        private int size;
 
-    public static <E> ListIterator<E> listIterator(List<E> list, int index) {
-        return new ListItr<>(Objects.requireNonNull(list), index);
-    }
+        private ElementRepetition(E element, int size) {
+            this.element = element;
+            this.size = size;
+        }
 
-    public static <E> ListIterator<E> listIterator(List<E> list) {
-        return listIterator(list, 0);
+        @Override
+        public E get(int index) {
+            Preconditions.checkElementIndex(index, size());
+            return element;
+        }
+
+        @Override
+        public int size() {
+            return size;
+        }
+
+        @Override
+        public void add(int index, E element) {
+            Preconditions.checkPositionIndex(index, size());
+
+            if (Objects.equals(this.element, element)) {
+                size++;
+            }
+        }
+
+        @Override
+        public boolean add(E e) {
+            if (Objects.equals(element, e)) {
+                size++;
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public boolean remove(Object o) {
+            if (!isEmpty() && Objects.equals(element, o)) {
+                size--;
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public E remove(int index) {
+            Preconditions.checkElementIndex(index, size());
+            size--;
+            return element;
+        }
+
+        @Override
+        public boolean removeAll(Collection<?> c) {
+            if (!isEmpty() && c.contains(element)) {
+                clear();
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public boolean removeIf(Predicate<? super E> filter) {
+            Preconditions.checkNotNull(filter);
+
+            if (!isEmpty() && filter.test(element)) {
+                size--;
+
+                while (!isEmpty() && filter.test(element)) {
+                    size--;
+                }
+
+                return true;
+            } else {
+                return false;
+            }
+        }
     }
 
     private static class IterationBasedList<E> extends AbstractList<E> implements RandomAccess {
@@ -251,7 +341,7 @@ public final class ListUtil {
 
         /**
          * Constructs a sublist of an arbitrary AbstractList, which is
-         * not a SubList itself.
+         * not a RandomAccessSubList itself.
          */
         public SubList(List<E> root, int fromIndex, int toIndex) {
             this.root = root;
@@ -260,7 +350,7 @@ public final class ListUtil {
         }
 
         /**
-         * Constructs a sublist of another SubList.
+         * Constructs a sublist of another RandomAccessSubList.
          */
         protected SubList(SubList<E> parent, int fromIndex, int toIndex) {
             this.root = parent.root;
@@ -308,7 +398,7 @@ public final class ListUtil {
             Objects.checkIndex(index, size);
             int cSize = c.size();
 
-            if (cSize==0)
+            if (cSize == 0)
                 return false;
 
             root.addAll(offset + index, c);
@@ -390,13 +480,13 @@ public final class ListUtil {
         /**
          * Constructs a sublist of another RandomAccessSubList.
          */
-        RandomAccessSubList(RandomAccessSubList<E> parent, int fromIndex, int toIndex) {
+        RandomAccessSubList(RandomAccessSubList parent, int fromIndex, int toIndex) {
             super(parent, fromIndex, toIndex);
         }
 
         public List<E> subList(int fromIndex, int toIndex) {
             Objects.checkFromToIndex(fromIndex, toIndex, size);
-            return new RandomAccessSubList<>(this, fromIndex, toIndex);
+            return new RandomAccessSubList(this, fromIndex, toIndex);
         }
     }
 
@@ -472,7 +562,7 @@ public final class ListUtil {
         }
 
         public int previousIndex() {
-            return cursor-1;
+            return cursor - 1;
         }
 
         public void set(E e) {
@@ -498,11 +588,84 @@ public final class ListUtil {
         }
     }
 
-    public interface IntInt2ObjectFunction<R> {
-        R apply(int i, int j);
+    private static class Partition<T, L extends List<T>> extends AbstractList<L> implements RandomAccess {
+        final L list;
+        final int size;
+
+        Partition(L list, int size) {
+            this.list = list;
+            this.size = size;
+        }
+
+        @SuppressWarnings("unchecked")
+        public L get(int index) {
+            Preconditions.checkElementIndex(index, this.size());
+            int start = index * this.size;
+            int end = Math.min(start + this.size, this.list.size());
+            return (L) this.list.subList(start, end);
+        }
+
+        public int size() {
+            return IntMath.divide(this.list.size(), this.size, RoundingMode.CEILING);
+        }
+
+        public boolean isEmpty() {
+            return this.list.isEmpty();
+        }
     }
 
-    public interface IntIntInt2ObjectFunction<R> {
-        R apply(int i, int j, int k);
+    private static class L2ZTransformingList<E> extends TransformingBooleanSequentialList<E, List<E>> {
+        private final Predicate<? super E> transformer;
+
+        protected L2ZTransformingList(List<E> list, Predicate<? super E> transformer) {
+            super(list);
+            this.transformer = transformer;
+        }
+
+        @Override
+        public @NotNull BooleanListIterator listIterator(int index) {
+            return new TransformingBooleanListIterator<>(list.listIterator(index)) {
+                @Override
+                public boolean nextBoolean() {
+                    return transformer.test(itr.next());
+                }
+
+                @Override
+                public boolean previousBoolean() {
+                    return transformer.test(itr.previous());
+                }
+            };
+        }
+
+        @Override
+        public boolean removeIf(final BooleanPredicate filter) {
+            Preconditions.checkNotNull(filter);
+            return list.removeIf((e) -> filter.test(transformer.test(e)));
+        }
+
+        @Override
+        public boolean removeBoolean(int index) {
+            return transformer.test(list.remove(index));
+        }
+    }
+
+    private static class L2ZRATransformingList<E> extends TransformingBooleanRandomAccessList<E, List<E>> {
+        private final Predicate<? super E> transformer;
+
+        private L2ZRATransformingList(List<E> list, Predicate<? super E> transformer) {
+            super(list);
+            this.transformer = transformer;
+        }
+
+        @Override
+        public boolean getBoolean(int index) {
+            return transformer.test(list.get(index));
+        }
+
+        @Override
+        public boolean removeIf(final BooleanPredicate filter) {
+            Preconditions.checkNotNull(filter);
+            return list.removeIf((e) -> filter.test(transformer.test(e)));
+        }
     }
 }

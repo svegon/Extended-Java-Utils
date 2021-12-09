@@ -1,9 +1,9 @@
 package svegon.utils.math.really_big_math;
 
+import it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair;
+import net.jcip.annotations.Immutable;
 import org.jetbrains.annotations.NotNull;
 import svegon.utils.StringUtil;
-import it.unimi.dsi.fastutil.Pair;
-import net.jcip.annotations.Immutable;
 
 /**
  * class for representing numbers with higher precision than primitives like long or double
@@ -11,17 +11,13 @@ import net.jcip.annotations.Immutable;
  */
 @Immutable
 public abstract class InfiniNumber extends Number implements Comparable<Number> {
+    InfiniNumber() {
+
+    }
+
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-
-        if (obj instanceof Number n) {
-            return compareTo(n) == 0;
-        }
-
-        return false;
+        return obj instanceof Number && compareTo((Number) obj) == 0;
     }
 
     @Override
@@ -60,7 +56,9 @@ public abstract class InfiniNumber extends Number implements Comparable<Number> 
 
     public abstract @NotNull InfiniNumber div(@NotNull Number divider);
 
-    public abstract @NotNull InfiniNumber floorDiv(@NotNull Number other);
+    public @NotNull InfiniNumber floorDiv(@NotNull Number other) {
+        return divMod(other).first();
+    }
 
     public final @NotNull InfiniNumber power(@NotNull Number exponent) {
         return pow(exponent);
@@ -84,7 +82,7 @@ public abstract class InfiniNumber extends Number implements Comparable<Number> 
     public abstract @NotNull InfiniNumber log();
 
     public @NotNull InfiniNumber log(@NotNull Number base) {
-        return log().div(ComplexMathUtil.ln(base));
+        return log().div(ComplexMathUtil.cast(base).log());
     }
 
     /**
@@ -95,13 +93,60 @@ public abstract class InfiniNumber extends Number implements Comparable<Number> 
      * @param other the modulo
      * @return The rest after substracting the higher integer multiplier of {@param other}
      */
-    public abstract @NotNull InfiniNumber mod(@NotNull Number other);
+    public @NotNull InfiniNumber mod(@NotNull Number other) {
+        return divMod(other).right();
+    }
 
-    public abstract @NotNull Pair<@NotNull InfiniNumber, @NotNull InfiniNumber> divMod(@NotNull Number other);
+    /**
+     * Returns an object containing both the floor division
+     * and modulo of this number with the {@param other}.
+     *
+     * This may be significantly faster than calling each
+     * respective function seperately since the modulo
+     * is often calculated along with the floor division.
+     *
+     * @param other the divider
+     * @return an {@code ObjectObjectImmutablePair} with its first
+     * element being the floor division of this and {@param other}
+     * and the right elemtn being the modulo of this and
+     * {@param other}.
+     */
+    public abstract @NotNull ObjectObjectImmutablePair<@NotNull InfiniNumber, @NotNull InfiniNumber>
+    divMod(@NotNull Number other);
 
+    /**
+     * Shifts this number by the given number of bits to the left.
+     *
+     * <p>
+     * Special cases:
+     * <ul><li>If this is infinite (an instance of {@code Infinity},
+     * the result is the {@code InfiniFloat} value of the long bits
+     * of the double value of this number shifted to the left
+     * by the given amount.</ul>
+     *
+     * @param by the number of bits to shift to the left
+     * @return a number representing this shifted by the given amount
+     * of bits to the left
+     */
     public abstract @NotNull InfiniNumber lShift(long by);
 
-    public abstract @NotNull InfiniNumber rShift(long by);
+    /**
+     * Shifts this number by the given number of bits to the right.
+     *
+     * <p>
+     * Special cases:
+     * <ul><li>If this is infinite (an instance of {@code Infinity},
+     * the result is the {@code InfiniFloat} value of the long bits
+     * of the double value of this number shifted to the right
+     * by the given amount.</ul>
+     *
+     * @param by the number of bits to shift to the right
+     * @return a number representing this shifted by the given amount
+     * of bits to the right
+     */
+    public @NotNull InfiniNumber rShift(long by) {
+        return lShift(-by);
+    }
 
     /**
      * @param other

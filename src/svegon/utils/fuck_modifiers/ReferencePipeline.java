@@ -549,16 +549,17 @@ public abstract class ReferencePipeline<P_IN, P_OUT> extends AbstractPipeline<P_
     @SuppressWarnings("unchecked")
     public final <R, A> R collect(Collector<? super P_OUT, A, R> collector) {
         A container;
+
         if (isParallel()
                 && (collector.characteristics().contains(Collector.Characteristics.CONCURRENT))
                 && (!isOrdered() || collector.characteristics().contains(Collector.Characteristics.UNORDERED))) {
             container = collector.supplier().get();
             BiConsumer<A, ? super P_OUT> accumulator = collector.accumulator();
             forEach(u -> accumulator.accept(container, u));
-        }
-        else {
+        } else {
             container = evaluate(ReduceOps.makeRef(collector));
         }
+
         return collector.characteristics().contains(Collector.Characteristics.IDENTITY_FINISH)
                ? (R) container
                : collector.finisher().apply(container);

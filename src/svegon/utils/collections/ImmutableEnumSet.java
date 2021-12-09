@@ -14,10 +14,14 @@ public abstract class ImmutableEnumSet<E extends Enum<E>> extends AbstractSet<E>
         this.enumClass = enumClass;
     }
 
+    public static <E extends Enum<E>> ImmutableEnumSet<E> of(final @NotNull Class<E> enumClass) {
+        return new EmptyImmutableEnumSet<>(enumClass);
+    }
+
     @SuppressWarnings("unchecked")
-    public static <E extends Enum<E>> Set<E> of(final @NotNull Collection<E> elements) {
+    public static <E extends Enum<E>> ImmutableEnumSet<E> of(final @NotNull Collection<E> elements) {
         if (elements.isEmpty()) {
-            return Collections.emptySet();
+            throw new IllegalArgumentException();
         }
 
         Class<E> enumClass;
@@ -25,7 +29,7 @@ public abstract class ImmutableEnumSet<E extends Enum<E>> extends AbstractSet<E>
         try {
             enumClass = (Class<E>) elements.iterator().next().getClass();
         } catch (NoSuchElementException e) {
-            return Collections.emptySet();
+            throw new IllegalArgumentException();
         }
 
         boolean[] flags = new boolean[enumClass.getEnumConstants().length];
@@ -37,7 +41,8 @@ public abstract class ImmutableEnumSet<E extends Enum<E>> extends AbstractSet<E>
         return new RegularImmutableEnumSet<>(enumClass, flags);
     }
 
-    public static <E extends Enum<E>> Set<E> of(E @NotNull ... elements) {
+    @SafeVarargs
+    public static <E extends Enum<E>> ImmutableEnumSet<E> of(E @NotNull ... elements) {
         return of(Arrays.asList(elements));
     }
 
@@ -66,6 +71,22 @@ public abstract class ImmutableEnumSet<E extends Enum<E>> extends AbstractSet<E>
         @Override
         public boolean contains(Object o) {
             return enumClass.isInstance(o) && flags[((E) o).ordinal()];
+        }
+    }
+
+    private static final class EmptyImmutableEnumSet<E extends Enum<E>> extends ImmutableEnumSet<E> {
+        EmptyImmutableEnumSet(@NotNull Class<E> enumClass) {
+            super(enumClass);
+        }
+
+        @Override
+        public @NotNull Iterator<E> iterator() {
+            return Collections.emptyListIterator();
+        }
+
+        @Override
+        public int size() {
+            return 0;
         }
     }
 }

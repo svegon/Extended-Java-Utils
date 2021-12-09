@@ -9,6 +9,8 @@ public final class MathUtil {
 
     public static final float PI = (float) Math.PI;
     public static final float DEGREE_TO_RAD_RATIO = PI / 180F;
+    public static final int NEGATIVE_ZERO_FLOAT_BITS = Float.floatToRawIntBits(-0.0f);
+    public static final long NEGATIVE_ZERO_DOUBLE_BITS = Double.doubleToRawLongBits(-0.0d);
 
     public static boolean isInteger(String s) {
         try {
@@ -125,5 +127,63 @@ public final class MathUtil {
             return simpleSum;
         else
             return tmp;
+    }
+
+    public static int clamp(int n, int min, int max) {
+        if (n < min) {
+            return min;
+        }
+
+        return Math.min(n, max);
+    }
+
+    public static long clamp(long n, long min, long max) {
+        if (n < min) {
+            return min;
+        }
+
+        return Math.min(n, max);
+    }
+
+    public static float clamp(float n, float min, float max) {
+        if (Float.isNaN(n))
+            return Float.NaN; // return canonical NaN regardless of the input
+
+        if (n == 0.0f) {
+            if (Float.floatToRawIntBits(max) == NEGATIVE_ZERO_FLOAT_BITS) {
+                return max;
+            }
+
+            if (Float.floatToRawIntBits(min) == NEGATIVE_ZERO_FLOAT_BITS) {
+                return n;
+            }
+        }
+
+        if (n > max) {
+            return n;
+        }
+
+        return (n <= min) ? n : min;
+    }
+
+    public static double clamp(double n, double min, double max) {
+        if (Double.isNaN(n))
+            return Double.NaN; // return canonical NaN regardless of the input
+
+        if (n == 0.0f) {
+            if (Double.doubleToRawLongBits(max) == NEGATIVE_ZERO_DOUBLE_BITS) {
+                return max;
+            }
+
+            if (Double.doubleToRawLongBits(min) == NEGATIVE_ZERO_DOUBLE_BITS) {
+                return n;
+            }
+        }
+
+        if (n > max) {
+            return n;
+        }
+
+        return (n <= min) ? n : min;
     }
 }

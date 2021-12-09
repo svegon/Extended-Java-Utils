@@ -25,6 +25,11 @@
 package svegon.utils.fuck_modifiers;
 
 import it.unimi.dsi.fastutil.booleans.BooleanArrays;
+import svegon.utils.fast.util.booleans.BooleanPipeline;
+import svegon.utils.fast.util.bytes.BytePipeline;
+import svegon.utils.fast.util.chars.CharPipeline;
+import svegon.utils.fast.util.floats.FloatPipeline;
+import svegon.utils.fast.util.shorts.ShortPipeline;
 import svegon.utils.collections.stream.*;
 
 import java.util.*;
@@ -522,7 +527,7 @@ public final class SortedOps {
      * Abstract {@link Sink} for implementing sort on reference streams.
      *
      * <p>
-     * Note: documentation below applies to reference and all primitive sinks.
+     * Note: documentation below applies to reference and all fast sinks.
      * <p>
      * Sorting sinks first accept all elements, buffering then into an array
      * or a re-sizable data structure, if the size of the pipeline is known or

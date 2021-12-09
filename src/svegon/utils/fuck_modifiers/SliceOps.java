@@ -29,6 +29,11 @@ import it.unimi.dsi.fastutil.bytes.ByteSpliterator;
 import it.unimi.dsi.fastutil.chars.CharSpliterator;
 import it.unimi.dsi.fastutil.floats.FloatSpliterator;
 import it.unimi.dsi.fastutil.shorts.ShortSpliterator;
+import svegon.utils.fast.util.booleans.BooleanPipeline;
+import svegon.utils.fast.util.bytes.BytePipeline;
+import svegon.utils.fast.util.chars.CharPipeline;
+import svegon.utils.fast.util.floats.FloatPipeline;
+import svegon.utils.fast.util.shorts.ShortPipeline;
 import svegon.utils.collections.stream.*;
 
 import java.util.Spliterator;
